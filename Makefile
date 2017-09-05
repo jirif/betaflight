@@ -89,7 +89,7 @@ FEATURES        =
 
 include $(ROOT)/make/targets.mk
 
-REVISION := $(shell git log -1 --format="%h")
+REVISION :=
 
 FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk '{print $$3}' )
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
@@ -174,7 +174,7 @@ include $(ROOT)/make/source.mk
 #
 
 # Find out if ccache is installed on the system
-CCACHE := ccache
+CCACHE :=
 RESULT = $(shell (which $(CCACHE) > /dev/null 2>&1; echo $$?) )
 ifneq ($(RESULT),0)
 CCACHE :=
