@@ -15,16 +15,21 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdbool.h>
+#include <stdint.h>
 
-#include "common/time.h"
-#include "rx/crsf.h"
-#include "telemetry/msp_shared.h"
+#include <platform.h>
 
-void initCrsfTelemetry(void);
-bool checkCrsfTelemetryState(void);
-void handleCrsfTelemetry(timeUs_t currentTimeUs);
-void crsfScheduleDeviceInfoResponse(void);
-void crsfScheduleMspResponse(void);
+#ifdef TARGET_CONFIG
 
-int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType);
+#include "config/parameter_group.h"
+#include "drivers/max7456.h"
+
+void targetConfiguration(void)
+{
+#ifdef OMNIBUSF4BASE
+    // OMNIBUS F4 AIO (1st gen) has a AB7456 chip that is detected as MAX7456
+    max7456ConfigMutable()->clockConfig = MAX7456_CLOCK_CONFIG_FULL;
+#endif
+}
+#endif

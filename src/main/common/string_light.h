@@ -17,14 +17,12 @@
 
 #pragma once
 
-#include "common/time.h"
-#include "rx/crsf.h"
-#include "telemetry/msp_shared.h"
+int sl_isalnum(int c);
+int sl_isdigit(int c);
+int sl_isupper(int c);
+int sl_islower(int c);
+int sl_tolower(int c);
+int sl_toupper(int c);
 
-void initCrsfTelemetry(void);
-bool checkCrsfTelemetryState(void);
-void handleCrsfTelemetry(timeUs_t currentTimeUs);
-void crsfScheduleDeviceInfoResponse(void);
-void crsfScheduleMspResponse(void);
-
-int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType);
+int sl_strcasecmp(const char * s1, const char * s2);
+int sl_strncasecmp(const char * s1, const char * s2, int n);
