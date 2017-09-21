@@ -124,7 +124,7 @@ throttleStatus_e calculateThrottleStatus(void)
 void processRcStickPositions(throttleStatus_e throttleStatus)
 {
     // RC refresh rate converted to number of time the sticks must be maintained to arm,disarm
-    uint8_t rcDelayTicks = constrain(ARM_DELAY_TIME / getTaskDeltaTime(TASK_RX), 10, 20);
+    uint8_t rcDelayTicks = constrain(ARM_DELAY_TIME / getTaskDeltaTime(TASK_RX), 20, 50);
     // indicates the number of time the sticks are maintained
     static uint8_t rcDelayCommand;
     // autorepeat handler
