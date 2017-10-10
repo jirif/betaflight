@@ -12,7 +12,9 @@
 # Where to find user code.
 USER_DIR = ../main
 TEST_DIR = unit
+ROOT = ../..
 
+include $(ROOT)/make/system-id.mk
 
 # specify which files that are included in the test in addition to the unittest file.
 # variables available:
@@ -227,6 +229,7 @@ telemetry_crsf_unittest_DEFINES := \
 
 telemetry_crsf_msp_unittest_SRC := \
 		$(USER_DIR)/rx/crsf.c \
+		$(USER_DIR)/build/atomic.c \
 		$(USER_DIR)/common/crc.c \
 		$(USER_DIR)/common/streambuf.c \
 		$(USER_DIR)/common/printf.c \
@@ -280,9 +283,6 @@ huffman_unittest_SRC := \
 huffman_unittest_DEFINES := \
 		USE_HUFFMAN
 
-ringbuffer_unittest_SRC := \
-		$(USER_DIR)/common/ringbuffer.c
-
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
@@ -295,9 +295,6 @@ GTEST_DIR = ../../lib/test/gtest
 USER_INCLUDE_DIR = $(USER_DIR)
 
 OBJECT_DIR = ../../obj/test
-
-# Determine the OS
-UNAME := $(shell uname -s)
 
 # Use clang/clang++ by default
 CC  := clang
@@ -321,7 +318,7 @@ COMMON_FLAGS += -fblocks
 LDFLAGS	     += -lBlocksRuntime
 endif
 
-ifneq ($(UNAME), Darwin)
+ifndef MACOSX
 COMMON_FLAGS += -pthread
 endif
 
@@ -340,7 +337,7 @@ C_FLAGS   += $(COVERAGE_FLAGS)
 CXX_FLAGS += $(COVERAGE_FLAGS)
 
 # Set up the parameter group linker flags according to OS
-ifeq ($(UNAME), Darwin)
+ifdef MACOSX
 LDFLAGS  += -Wl,-map,$(OBJECT_DIR)/$@.map
 else
 LDFLAGS  += -Wl,-T,$(TEST_DIR)/parameter_group.ld -Wl,-Map,$(OBJECT_DIR)/$@.map
