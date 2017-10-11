@@ -106,8 +106,6 @@ enum {
 int16_t magHold;
 #endif
 
-int16_t headFreeModeHold;
-
 static bool reverseMotors = false;
 static bool flipOverAfterCrashMode = false;
 
@@ -281,10 +279,11 @@ void tryArm(void)
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+
         if (isModeActivationConditionPresent(BOXPREARM)) {
             ENABLE_ARMING_FLAG(WAS_ARMED_WITH_PREARM);
         }
-        headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+        imuQuaternionHeadfreeOffsetSet();
 
         disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
@@ -465,6 +464,13 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
+#ifdef USE_DSHOT
+    /* Enable beep warning when the crash flip mode is active */
+    if (isMotorProtocolDshot() && isModeActivationConditionPresent(BOXFLIPOVERAFTERCRASH) && IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH)) {
+        beeper(BEEPER_CRASH_FLIP_MODE);
+    }
+#endif
+
     if (!cliMode) {
         updateAdjustmentStates();
         processRcAdjustments(currentControlRateProfile);
@@ -524,7 +530,9 @@ void processRx(timeUs_t currentTimeUs)
             DISABLE_FLIGHT_MODE(HEADFREE_MODE);
         }
         if (IS_RC_MODE_ACTIVE(BOXHEADADJ)) {
-            headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw); // acquire new heading
+            if (imuQuaternionHeadfreeOffsetSet()){
+               beeper(BEEPER_RX_SET);
+            }
         }
     }
 #endif
@@ -648,7 +656,7 @@ static void subTaskMainSubprocesses(timeUs_t currentTimeUs)
 #ifdef TRANSPONDER
     transponderUpdate(currentTimeUs);
 #endif
-    DEBUG_SET(DEBUG_PIDLOOP, 2, micros() - startTime);
+    DEBUG_SET(DEBUG_PIDLOOP, 3, micros() - startTime);
 }
 
 static void subTaskMotorUpdate(void)
@@ -676,7 +684,7 @@ static void subTaskMotorUpdate(void)
 
     writeMotors();
 
-    DEBUG_SET(DEBUG_PIDLOOP, 3, micros() - startTime);
+    DEBUG_SET(DEBUG_PIDLOOP, 2, micros() - startTime);
 }
 
 uint8_t setPidUpdateCountDown(void)
@@ -691,32 +699,19 @@ uint8_t setPidUpdateCountDown(void)
 // Function for loop trigger
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
-    static bool runTaskMainSubprocesses;
-    static uint8_t pidUpdateCountdown;
+    static uint8_t pidUpdateCountdown = 0;
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_GYROPID_SYNC)
     if (lockMainPID() != 0) return;
 #endif
 
-    if (debugMode == DEBUG_CYCLETIME) {
-        debug[0] = getTaskDeltaTime(TASK_SELF);
-        debug[1] = averageSystemLoadPercent;
-    }
-
-    if (runTaskMainSubprocesses) {
-        subTaskMainSubprocesses(currentTimeUs);
-        runTaskMainSubprocesses = false;
-    }
-
     // DEBUG_PIDLOOP, timings for:
     // 0 - gyroUpdate()
     // 1 - pidController()
-    // 2 - subTaskMainSubprocesses()
-    // 3 - subTaskMotorUpdate()
-    uint32_t startTime = 0;
-    if (debugMode == DEBUG_PIDLOOP) {startTime = micros();}
+    // 2 - subTaskMotorUpdate()
+    // 3 - subTaskMainSubprocesses()
     gyroUpdate();
-    DEBUG_SET(DEBUG_PIDLOOP, 0, micros() - startTime);
+    DEBUG_SET(DEBUG_PIDLOOP, 0, micros() - currentTimeUs);
 
     if (pidUpdateCountdown) {
         pidUpdateCountdown--;
@@ -724,7 +719,12 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         pidUpdateCountdown = setPidUpdateCountDown();
         subTaskPidController(currentTimeUs);
         subTaskMotorUpdate();
-        runTaskMainSubprocesses = true;
+        subTaskMainSubprocesses(currentTimeUs);
+    }
+
+    if (debugMode == DEBUG_CYCLETIME) {
+        debug[0] = getTaskDeltaTime(TASK_SELF);
+        debug[1] = averageSystemLoadPercent;
     }
 }
 
@@ -732,6 +732,7 @@ bool isMotorsReversed(void)
 {
     return reverseMotors;
 }
+
 bool isFlipOverAfterCrashMode(void)
 {
     return flipOverAfterCrashMode;
