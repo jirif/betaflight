@@ -20,21 +20,28 @@
 
 #define TARGET_BOARD_IDENTIFIER "BFF3"
 
+// Removing some features to make the firmware fit the flash space
+#undef USE_TELEMETRY_JETIEXBUS
+#undef USE_TELEMETRY_LTM
+
+
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
+
+#define USE_DSHOT_DMAR
 
 #define USABLE_TIMER_CHANNEL_COUNT 10
 
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_INSTANCE    SPI1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_SPI_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
@@ -46,6 +53,8 @@
 #define USE_ESC_SENSOR
 #define REMAP_TIM16_DMA
 #define REMAP_TIM17_DMA
+
+#undef USE_TELEMETRY_IBUS
 
 #define USE_VCP
 #define USE_UART1
@@ -87,7 +96,7 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define OSD
+#define USE_OSD
 // include the max7456 driver
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI1
@@ -113,6 +122,7 @@
 #define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
+#define ADC24_DMA_REMAP
 #define VBAT_ADC_PIN            PA4
 #define CURRENT_METER_ADC_PIN   PA5
 #define RSSI_ADC_PIN            PB2

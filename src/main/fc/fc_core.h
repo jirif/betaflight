@@ -18,9 +18,9 @@
 #pragma once
 
 #include "common/time.h"
-#include "config/parameter_group.h"
+#include "pg/pg.h"
 
-#if defined(GPS) || defined(MAG)
+#if defined(USE_GPS) || defined(USE_MAG)
 extern int16_t magHold;
 #endif
 

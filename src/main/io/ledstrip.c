@@ -23,7 +23,7 @@
 
 #include <platform.h>
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 
 #include "build/build_config.h"
 
@@ -35,8 +35,8 @@
 #include "common/utils.h"
 
 #include "config/feature.h"
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
 
 #include "drivers/light_ws2811strip.h"
 #include "drivers/serial.h"
@@ -430,10 +430,10 @@ static const struct {
     uint8_t ledMode;
 } flightModeToLed[] = {
     {HEADFREE_MODE, LED_MODE_HEADFREE},
-#ifdef MAG
+#ifdef USE_MAG
     {MAG_MODE,      LED_MODE_MAG},
 #endif
-#ifdef BARO
+#ifdef USE_BARO
     {BARO_MODE,     LED_MODE_BARO},
 #endif
     {HORIZON_MODE,  LED_MODE_HORIZON},
@@ -458,7 +458,7 @@ static void applyLedFixedLayers(void)
             hsvColor_t previousColor = ledStripConfig()->colors[(ledGetColor(ledConfig) - 1 + LED_CONFIGURABLE_COLOR_COUNT) % LED_CONFIGURABLE_COLOR_COUNT];
 
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_THROTTLE)) {   //smooth fade with selected Aux channel of all HSV values from previousColor through color to nextColor
-            	int centerPWM = (PWM_RANGE_MIN + PWM_RANGE_MAX) / 2;
+                int centerPWM = (PWM_RANGE_MIN + PWM_RANGE_MAX) / 2;
                 if (auxInput < centerPWM) {
                     color.h = scaleRange(auxInput, PWM_RANGE_MIN, centerPWM, previousColor.h, color.h);
                     color.s = scaleRange(auxInput, PWM_RANGE_MIN, centerPWM, previousColor.s, color.s);
@@ -495,7 +495,7 @@ static void applyLedFixedLayers(void)
 
         case LED_FUNCTION_RSSI:
             color = HSV(RED);
-            hOffset += scaleRange(rssi * 100, 0, 1023, -30, 120);
+            hOffset += scaleRange(getRssi() * 100, 0, 1023, -30, 120);
             break;
 
         default:
@@ -578,7 +578,7 @@ static void applyLedWarningLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
-#ifdef VTX_COMMON
+#ifdef USE_VTX_COMMON
 static void applyLedVtxLayer(bool updateNow, timeUs_t *timer)
 {
     static uint16_t frequency = 0;
@@ -586,14 +586,18 @@ static void applyLedVtxLayer(bool updateNow, timeUs_t *timer)
     static uint8_t pit = 255;
     static uint8_t showSettings = false;
     static uint16_t lastCheck = 0;
-    static bool active = false;
     static bool blink = false;
+
+    if (!vtxCommonDeviceRegistered()) {
+        return;
+    }
+
     uint8_t band = 255, channel = 255;
     uint16_t check = 0;
 
     if (updateNow) {
         // keep counter running, so it stays in sync with vtx
-        active = vtxCommonGetBandAndChannel(&band, &channel);
+        vtxCommonGetBandAndChannel(&band, &channel);
         vtxCommonGetPowerIndex(&power);
         vtxCommonGetPitMode(&pit);
 
@@ -612,10 +616,6 @@ static void applyLedVtxLayer(bool updateNow, timeUs_t *timer)
         }
         blink = !blink;
         *timer += HZ_TO_US(5); // check 5 times a second
-    }
-
-    if (!active) { // no vtx device detected
-        return;
     }
 
     hsvColor_t color = {0, 0, 0};
@@ -646,23 +646,25 @@ static void applyLedVtxLayer(bool updateNow, timeUs_t *timer)
     }
     else { // show frequency
         // calculate the VTX color based on frequency
+        int colorIndex = 0;
         if (frequency <= 5672) {
-            color = HSV(WHITE);
+            colorIndex = COLOR_WHITE;
         } else if (frequency <= 5711) {
-            color = HSV(RED);
+            colorIndex = COLOR_RED;
         } else if (frequency <= 5750) {
-            color = HSV(ORANGE);
+            colorIndex = COLOR_ORANGE;
         } else if (frequency <= 5789) {
-            color = HSV(YELLOW);
+            colorIndex = COLOR_YELLOW;
         } else if (frequency <= 5829) {
-            color = HSV(GREEN);
+            colorIndex = COLOR_GREEN;
         } else if (frequency <= 5867) {
-            color = HSV(BLUE);
+            colorIndex = COLOR_BLUE;
         } else if (frequency <= 5906) {
-            color = HSV(DARK_VIOLET);
+            colorIndex = COLOR_DARK_VIOLET;
         } else {
-            color = HSV(MAGENTA);
-        }        
+            colorIndex = COLOR_DEEP_PINK;
+        }
+        hsvColor_t color = ledStripConfig()->colors[colorIndex];
         color.v = pit ? (blink ? 15 : 0) : 255; // blink when in pit mode
         applyLedHsv(LED_MOV_OVERLAY(LED_FLAG_OVERLAY(LED_OVERLAY_VTX)), &color);
     }
@@ -711,7 +713,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     int timerDelay = HZ_TO_US(1);
 
     if (updateNow) {
-        int state = (rssi * 100) / 1023;
+        int state = (getRssi() * 100) / 1023;
 
         if (state > 50) {
             flash = true;
@@ -733,7 +735,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void applyLedGpsLayer(bool updateNow, timeUs_t *timer)
 {
 
@@ -994,11 +996,11 @@ typedef enum {
     timLarson,
     timBattery,
     timRssi,
-#ifdef GPS
+#ifdef USE_GPS
     timGps,
 #endif
     timWarning,
-#ifdef VTX_COMMON
+#ifdef USE_VTX_COMMON
     timVtx,
 #endif
     timIndicator,
@@ -1023,11 +1025,11 @@ static applyLayerFn_timed* layerTable[] = {
     [timLarson] = &applyLarsonScannerLayer,
     [timBattery] = &applyLedBatteryLayer,
     [timRssi] = &applyLedRssiLayer,
-#ifdef GPS
+#ifdef USE_GPS
     [timGps] = &applyLedGpsLayer,
 #endif
     [timWarning] = &applyLedWarningLayer,
-#ifdef VTX_COMMON
+#ifdef USE_VTX_COMMON
     [timVtx] = &applyLedVtxLayer,
 #endif
     [timIndicator] = &applyLedIndicatorLayer,

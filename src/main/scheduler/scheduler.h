@@ -62,37 +62,37 @@ typedef enum {
 #ifdef BEEPER
     TASK_BEEPER,
 #endif
-#ifdef GPS
+#ifdef USE_GPS
     TASK_GPS,
 #endif
-#ifdef MAG
+#ifdef USE_MAG
     TASK_COMPASS,
 #endif
-#ifdef BARO
+#ifdef USE_BARO
     TASK_BARO,
 #endif
-#ifdef SONAR
-    TASK_SONAR,
+#ifdef USE_RANGEFINDER
+    TASK_RANGEFINDER,
 #endif
-#if defined(BARO) || defined(SONAR)
+#if defined(USE_BARO) || defined(USE_RANGEFINDER)
     TASK_ALTITUDE,
 #endif
 #ifdef USE_DASHBOARD
     TASK_DASHBOARD,
 #endif
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     TASK_TELEMETRY,
 #endif
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     TASK_LEDSTRIP,
 #endif
-#ifdef TRANSPONDER
+#ifdef USE_TRANSPONDER
     TASK_TRANSPONDER,
 #endif
 #ifdef STACK_CHECK
     TASK_STACK_CHECK,
 #endif
-#ifdef OSD
+#ifdef USE_OSD
     TASK_OSD,
 #endif
 #ifdef USE_OSD_SLAVE
@@ -104,18 +104,22 @@ typedef enum {
 #ifdef USE_ESC_SENSOR
     TASK_ESC_SENSOR,
 #endif
-#ifdef CMS
+#ifdef USE_CMS
     TASK_CMS,
 #endif
-#ifdef VTX_CONTROL
+#ifdef USE_VTX_CONTROL
     TASK_VTXCTRL,
 #endif
 #ifdef USE_CAMERA_CONTROL
     TASK_CAMCTRL,
 #endif
 
-#ifdef USE_RCSPLIT
-    TASK_RCSPLIT,
+#ifdef USE_RCDEVICE
+    TASK_RCDEVICE,
+#endif
+
+#ifdef USE_ADC_INTERNAL
+    TASK_ADC_INTERNAL,
 #endif
 
     /* Count of real tasks */

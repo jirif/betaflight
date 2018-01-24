@@ -22,8 +22,8 @@
 
 #include "platform.h"
 
-#ifdef SERIAL_RX
-#ifdef TELEMETRY
+#ifdef USE_SERIAL_RX
+#ifdef USE_TELEMETRY
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -277,7 +277,7 @@ void handleJetiExBusTelemetry(void)
             jetiExSensors[EX_TIME_DIFF].value = timeDiff;
 
             // switch to TX mode
-            if (uartTotalRxBytesWaiting(jetiExBusPort) == 0) {
+            if (serialRxBytesWaiting(jetiExBusPort) == 0) {
                 serialSetMode(jetiExBusPort, MODE_TX);
                 jetiExBusTransceiveState = EXBUS_TRANS_TX;
                 sendJetiExBusTelemetry(jetiExBusRequestFrame[EXBUS_HEADER_PACKET_ID]);

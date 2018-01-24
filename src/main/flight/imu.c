@@ -28,8 +28,8 @@
 
 #include "common/axis.h"
 
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
 
 #include "drivers/time.h"
 
@@ -46,7 +46,6 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
-#include "sensors/sonar.h"
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_MULTITHREAD)
 #include <stdio.h>
@@ -59,7 +58,7 @@ static uint32_t imuDeltaT = 0;
 static bool imuUpdated = false;
 #endif
 
-#define IMU_LOCK pthread_mutex_unlock(&imuUpdateLock)
+#define IMU_LOCK pthread_mutex_lock(&imuUpdateLock)
 #define IMU_UNLOCK pthread_mutex_unlock(&imuUpdateLock)
 
 #else
@@ -178,6 +177,7 @@ void imuResetAccelerationSum(void)
     accTimeSum = 0;
 }
 
+#if defined(USE_ALT_HOLD)
 static void imuTransformVectorBodyToEarth(t_fp_vector * v)
 {
     /* From body frame to earth frame */
@@ -200,9 +200,9 @@ static void imuCalculateAcceleration(uint32_t deltaT)
     const float dT = (float)deltaT * 1e-6f;
 
     t_fp_vector accel_ned;
-    accel_ned.V.X = acc.accSmooth[X];
-    accel_ned.V.Y = acc.accSmooth[Y];
-    accel_ned.V.Z = acc.accSmooth[Z];
+    accel_ned.V.X = acc.accADC[X];
+    accel_ned.V.Y = acc.accADC[Y];
+    accel_ned.V.Z = acc.accADC[Z];
 
     imuTransformVectorBodyToEarth(&accel_ned);
 
@@ -227,6 +227,7 @@ static void imuCalculateAcceleration(uint32_t deltaT)
     accTimeSum += deltaT;
     accSumCount++;
 }
+#endif // USE_ALT_HOLD
 
 static float invSqrt(float x)
 {
@@ -389,20 +390,16 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void){
 
 static bool imuIsAccelerometerHealthy(void)
 {
-    int32_t accMagnitude = 0;
+    float accMagnitude = 0;
     for (int axis = 0; axis < 3; axis++) {
-        accMagnitude += (int32_t)acc.accSmooth[axis] * acc.accSmooth[axis];
+        const float a = acc.accADC[axis];
+        accMagnitude += a * a;
     }
 
     accMagnitude = accMagnitude * 100 / (sq((int32_t)acc.dev.acc_1G));
 
     // Accept accel readings only in range 0.90g - 1.10g
     return (81 < accMagnitude) && (accMagnitude < 121);
-}
-
-static bool isMagnetometerHealthy(void)
-{
-    return (mag.magADC[X] != 0) && (mag.magADC[Y] != 0) && (mag.magADC[Z] != 0);
 }
 
 static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
@@ -420,10 +417,12 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
         useAcc = true;
     }
 
-    if (sensors(SENSOR_MAG) && isMagnetometerHealthy()) {
+#ifdef USE_MAG
+    if (sensors(SENSOR_MAG) && compassIsHealthy()) {
         useMag = true;
     }
-#if defined(GPS)
+#endif
+#if defined(USE_GPS)
     else if (STATE(FIXED_WING) && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5 && gpsSol.groundSpeed >= 300) {
         // In case of a fixed-wing aircraft we can use GPS course over ground to correct heading
         rawYawError = DECIDEGREES_TO_RADIANS(attitude.values.yaw - gpsSol.groundCourse);
@@ -443,16 +442,23 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 //  printf("[imu]deltaT = %u, imuDeltaT = %u, currentTimeUs = %u, micros64_real = %lu\n", deltaT, imuDeltaT, currentTimeUs, micros64_real());
     deltaT = imuDeltaT;
 #endif
-
+    float gyroAverage[XYZ_AXIS_COUNT];
+    gyroGetAccumulationAverage(gyroAverage);
+    float accAverage[XYZ_AXIS_COUNT];
+    if (!accGetAccumulationAverage(accAverage)) {
+        useAcc = false;
+    }
     imuMahonyAHRSupdate(deltaT * 1e-6f,
-                        DEGREES_TO_RADIANS(gyro.gyroADCf[X]), DEGREES_TO_RADIANS(gyro.gyroADCf[Y]), DEGREES_TO_RADIANS(gyro.gyroADCf[Z]),
-                        useAcc, acc.accSmooth[X], acc.accSmooth[Y], acc.accSmooth[Z],
+                        DEGREES_TO_RADIANS(gyroAverage[X]), DEGREES_TO_RADIANS(gyroAverage[Y]), DEGREES_TO_RADIANS(gyroAverage[Z]),
+                        useAcc, accAverage[X], accAverage[Y], accAverage[Z],
                         useMag, mag.magADC[X], mag.magADC[Y], mag.magADC[Z],
                         useYaw, rawYawError);
 
     imuUpdateEulerAngles();
 #endif
+#if defined(USE_ALT_HOLD)
     imuCalculateAcceleration(deltaT); // rotate acc vector into earth frame
+#endif
 }
 
 void imuUpdateAttitude(timeUs_t currentTimeUs)
@@ -469,9 +475,9 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         imuCalculateEstimatedAttitude(currentTimeUs);
         IMU_UNLOCK;
     } else {
-        acc.accSmooth[X] = 0;
-        acc.accSmooth[Y] = 0;
-        acc.accSmooth[Z] = 0;
+        acc.accADC[X] = 0;
+        acc.accADC[Y] = 0;
+        acc.accADC[Z] = 0;
     }
 }
 

@@ -28,6 +28,8 @@
 #define BEEPER_INVERTED
 #define BEEPER_PWM_HZ             3800 // Beeper PWM frequency in Hz
 
+#define USE_DSHOT_DMAR
+
 #define INVERTER_PIN_UART1        PC0 // PC0 used as inverter select GPIO
 
 #define CAMERA_CONTROL_PIN    PB9    // define dedicated camera_osd_control pin
@@ -40,9 +42,9 @@
 //  MPU 6000
 #define MPU6000_CS_PIN            PA4
 #define MPU6000_SPI_INSTANCE      SPI1
-#define ACC
+#define USE_ACC
 #define USE_ACC_SPI_MPU6000
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 #define GYRO_MPU6000_ALIGN       CW0_DEG
 #define ACC_MPU6000_ALIGN        CW0_DEG
@@ -59,7 +61,7 @@
 #define MPU6500_SPI_INSTANCE    SPI1
 
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI3
 #define MAX7456_SPI_CS_PIN      PA15
@@ -135,7 +137,7 @@
 #define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
 
-#define TRANSPONDER
+#define USE_TRANSPONDER
 
 #define DEFAULT_RX_FEATURE          FEATURE_RX_SERIAL
 #define DEFAULT_FEATURES            ( FEATURE_OSD  )
