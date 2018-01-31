@@ -25,6 +25,7 @@
 #define SPEKTRUM_VTX_CONTROL_2          (SPEK_FRAME_SIZE - 3)
 #define SPEKTRUM_VTX_CONTROL_3          (SPEK_FRAME_SIZE - 2)
 #define SPEKTRUM_VTX_CONTROL_4          (SPEK_FRAME_SIZE - 1)
+#define SPEKTRUM_VTX_CONTROL_SIZE       4
 
 #define SPEKTRUM_VTX_BAND_MASK          0x00e00000
 #define SPEKTRUM_VTX_CHANNEL_MASK       0x000f0000
@@ -82,9 +83,11 @@ typedef struct
     uint8_t power;
     uint8_t region;
     uint8_t pitMode;
-} stru_vtx;
+} spektrumVtx_t;
+
 
 void spektrumHandleVtxControl(uint32_t vtxControl);
+void spektrumVtxControl(void);
 
 
 

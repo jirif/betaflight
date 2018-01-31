@@ -143,8 +143,6 @@
 #define USE_RTC6705_CLK_HACK
 #define RTC6705_CLK_PIN                     SPI3_SCK_PIN
 
-#define USE_OSD
-
 // Bus Switched Device, Device A.
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE                SPI3
@@ -168,9 +166,7 @@
 #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
 
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DMA_CHANNEL                  0
 
 #define MPU6500_CS_PIN                      SPI1_NSS_PIN
 #define MPU6500_SPI_INSTANCE                SPI1
